@@ -98,6 +98,9 @@ import config
 from log import logger
 from leds import LedStrip, Color
 
+# Get log level from config
+loglevel = getattr(config, 'loglevel', 3)
+
 def normalize_visibility_value(visibility_str):
     """
     Normalize visibility values from various formats to float miles.
@@ -891,6 +894,9 @@ while (outerloop):
                 metar_taf_mos = data_sw0                    #1 = Display METAR.
                 logger.info('Rotary Switch Not Installed. Using Switch Position 0 as Default')
 #                break
+
+            # Add sleep to prevent 100% CPU usage in heat map mode
+            time.sleep(0.1)
 
         #The Heat Map routine stays within this limit and won't proceed beyond this point.
 
@@ -1702,26 +1708,27 @@ while (outerloop):
                     airportwx_long = wxstringdict.get(airportcode,"NONE") #Pull the weather reported for the airport from dictionary.
                     airportwx = airportwx_long.split(" ",1)[0] #Grab only the first parameter of the weather reported.
                 
-                # Debug logging for first few airports and some actual airports
-                if i < 5 or (i >= 5 and i < 10):
-                    logger.info(f"LED {i}: {airportcode} -> {flightcategory} (from dict: {airportcode in stationiddict})")
-                    if airportcode in stationiddict:
-                        logger.info(f"  Found in dict: {stationiddict[airportcode]}")
-                    else:
-                        logger.info(f"  Not found in dict. Available keys: {list(stationiddict.keys())[:10]}...")
+                # Debug logging for first few airports and some actual airports (commented out to reduce CPU usage)
+                # if i < 5 or (i >= 5 and i < 10):
+                #     logger.info(f"LED {i}: {airportcode} -> {flightcategory} (from dict: {airportcode in stationiddict})")
+                #     if airportcode in stationiddict:
+                #         logger.info(f"  Found in dict: {stationiddict[airportcode]}")
+                #     else:
+                #         logger.info(f"  Not found in dict. Available keys: {list(stationiddict.keys())[:10]}...")
 
                 #debug print out
-                if metar_taf_mos == 0:
-                    logger.debug("TAF Time +" + str(hour_to_display) + " Hour")
-                elif metar_taf_mos==1:
-                    logger.debug("METAR")
-                elif metar_taf_mos == 2:
-                    logger.debug("MOS Time +" + str(hour_to_display) + " Hour")
-                elif metar_taf_mos == 3:
-                    logger.debug("Heat Map + ")
+                if loglevel <= 1:  # Only log if debug level is enabled
+                    if metar_taf_mos == 0:
+                        logger.debug("TAF Time +" + str(hour_to_display) + " Hour")
+                    elif metar_taf_mos==1:
+                        logger.debug("METAR")
+                    elif metar_taf_mos == 2:
+                        logger.debug("MOS Time +" + str(hour_to_display) + " Hour")
+                    elif metar_taf_mos == 3:
+                        logger.debug("Heat Map + ")
 
 
-                logger.debug((airportcode + " " + flightcategory + " " + str(airportwinds) + " " + airportwx + " " + str(cycle_num) + " ")) #debug
+                # logger.debug((airportcode + " " + flightcategory + " " + str(airportwinds) + " " + airportwx + " " + str(cycle_num) + " ")) #debug - commented out to reduce CPU usage
 
                 #Start of weather display code for each airport in the "airports" file
                 #Check flight category and set the appropriate color to display
@@ -1814,26 +1821,26 @@ while (outerloop):
 
                 #Build and display Legend. "legend" must be set to 1 in the user defined section and "LGND" set in airports file.
                 if legend and airportcode == "LGND" and (i in legend_pins):
-                    logger.info(f"LED {i}: Applying legend logic for {airportcode}")
+                    # logger.info(f"LED {i}: Applying legend logic for {airportcode}") # commented out to reduce CPU usage
                     if i == leg_pin_vfr:
                         xcolor = Color(color_vfr[0], color_vfr[1], color_vfr[2])
-                        logger.info(f"LED {i}: Set to VFR color (green)")
+                        # logger.info(f"LED {i}: Set to VFR color (green)") # commented out to reduce CPU usage
 
                     if i == leg_pin_mvfr:
                         xcolor = Color(color_mvfr[0], color_mvfr[1], color_mvfr[2])
-                        logger.info(f"LED {i}: Set to MVFR color (blue)")
+                        # logger.info(f"LED {i}: Set to MVFR color (blue)") # commented out to reduce CPU usage
 
                     if i == leg_pin_ifr:
                         xcolor = Color(color_ifr[0], color_ifr[1], color_ifr[2])
-                        logger.info(f"LED {i}: Set to IFR color (red)")
+                        # logger.info(f"LED {i}: Set to IFR color (red)") # commented out to reduce CPU usage
 
                     if i == leg_pin_lifr:
                         xcolor = Color(color_lifr[0], color_lifr[1], color_lifr[2])
-                        logger.info(f"LED {i}: Set to LIFR color (magenta)")
+                        # logger.info(f"LED {i}: Set to LIFR color (magenta)") # commented out to reduce CPU usage
 
                     if i == leg_pin_nowx:
                         xcolor = Color(color_nowx[0], color_nowx[1], color_nowx[2])
-                        logger.info(f"LED {i}: Set to NOWX color (orange)")
+                        # logger.info(f"LED {i}: Set to NOWX color (orange)") # commented out to reduce CPU usage
 
                     if i == leg_pin_hiwinds and legend_hiwinds:
                         if (cycle_num == 3 or cycle_num == 4 or cycle_num == 5):
@@ -1902,9 +1909,9 @@ while (outerloop):
                 if airportcode == "NULL" or airportcode == "LGND":
                     xcolor = Color(color_black[0], color_black[1], color_black[2])
 
-                # Debug logging for first few LEDs to see final colors
-                if i < 10:
-                    logger.info(f"LED {i}: Final color = {xcolor} for {airportcode}")
+                # Debug logging for first few LEDs to see final colors (commented out to reduce CPU usage)
+                # if i < 10:
+                #     logger.info(f"LED {i}: Final color = {xcolor} for {airportcode}")
 
                 strip.set_pixel_color(i, xcolor) #set color to display on a specific LED for the current cycle_num cycle.
                 i = i + 1 #set next LED pin in strip
@@ -1916,3 +1923,6 @@ while (outerloop):
             print(".",end='')
             wait_time = cycle_wait[cycle_num] #cycle_wait time is a user defined value
             time.sleep(wait_time) #pause between cycles. pauses are setup in user definitions.
+
+        # Add sleep to prevent 100% CPU usage between weather updates
+        time.sleep(0.5)

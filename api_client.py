@@ -17,6 +17,9 @@ import logging
 import config
 from log import logger
 
+# Get log level from config
+loglevel = getattr(config, 'loglevel', 3)
+
 class AviationWeatherAPIError(Exception):
     """Custom exception for API errors."""
     pass
@@ -97,8 +100,10 @@ class AviationWeatherAPIClient:
         airport_string = ','.join(valid_codes)
         url = base_url + airport_string
         
-        logger.info(f"Requesting {data_type} data for {len(valid_codes)} airports")
-        logger.debug(f"API URL: {url}")
+        if loglevel <= 2:  # Only log if info level is enabled
+            logger.info(f"Requesting {data_type} data for {len(valid_codes)} airports")
+        if loglevel <= 1:  # Only log if debug level is enabled
+            logger.debug(f"API URL: {url}")
         
         # Make request with retry logic
         for attempt in range(self.retry_attempts):
@@ -145,7 +150,8 @@ class AviationWeatherAPIClient:
         Returns:
             ET.Element: Combined XML root element
         """
-        logger.info(f"Making chunked request for {len(airport_codes)} airports")
+        if loglevel <= 2:  # Only log if info level is enabled
+            logger.info(f"Making chunked request for {len(airport_codes)} airports")
         
         all_content = []
         chunk_size = 300
@@ -159,7 +165,9 @@ class AviationWeatherAPIClient:
                 response = self._make_single_request(url)
                 content = self._extract_xml_content(response)
                 all_content.extend(content)
-                logger.debug(f"Processed chunk {i//chunk_size + 1}")
+                # Only log every 5th chunk or on errors to reduce logging overhead
+                if (i // chunk_size + 1) % 5 == 0 and loglevel <= 1:
+                    logger.debug(f"Processed chunk {i//chunk_size + 1}")
                 
             except Exception as e:
                 logger.warning(f"Error processing chunk {i//chunk_size + 1}: {e}")
@@ -208,7 +216,8 @@ class AviationWeatherAPIClient:
             
             # Parse XML
             root = ET.fromstring(xml_str)
-            logger.info(f"Successfully parsed {data_type} response")
+            if loglevel <= 2:  # Only log if info level is enabled
+                logger.info(f"Successfully parsed {data_type} response")
             return root
             
         except ET.ParseError as e:
@@ -249,7 +258,8 @@ class AviationWeatherAPIClient:
         
         try:
             root = ET.fromstring(xml_str)
-            logger.info(f"Successfully combined {data_type} responses")
+            if loglevel <= 2:  # Only log if info level is enabled
+                logger.info(f"Successfully combined {data_type} responses")
             return root
         except ET.ParseError as e:
             logger.error(f"XML combination error: {e}")
@@ -305,7 +315,8 @@ class AviationWeatherAPIClient:
             # Test with a single airport
             test_codes = ['KORD']
             self.get_metar_data(test_codes, hours=1)
-            logger.info("API connection test successful")
+            if loglevel <= 2:  # Only log if info level is enabled
+                logger.info("API connection test successful")
             return True
         except Exception as e:
             logger.error(f"API connection test failed: {e}")

@@ -19,7 +19,7 @@ displayused = 0
 oledused = 0
 lcddisplay = 0
 numofdisplays = 8
-loglevel = 1
+loglevel = 3
 hiwindblink = 0
 lghtnflash = 0
 rainshow = 0
@@ -165,11 +165,11 @@ api_timeout = 30
 api_retry_attempts = 3
 api_retry_delay = 5
 force_fallback_calculation = 0  # Changed from 1 to 0 to allow API-provided flight categories
-log_flight_category_calculation = 1
+log_flight_category_calculation = 0
 handle_api_errors = 1
 default_to_nowx_on_error = 1
 api_version = '2025'
 
 # New 2025 API Settings
 prefer_api_flight_category = 1  # Use API-provided flight categories when available (1=yes, 0=no)
-log_xml_parsing_details = 1     # Enable detailed logging of XML parsing operations (1=yes, 0=no)
+log_xml_parsing_details = 0     # Enable detailed logging of XML parsing operations (1=yes, 0=no)
