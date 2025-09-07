@@ -53,6 +53,7 @@ class FlightCategoryCalculator:
     def parse_cloud_layers(self, clouds_data: Any) -> List[Dict[str, Any]]:
         """
         Parse cloud layers from XML or dict data.
+        Enhanced to handle both nested (<clouds><cloud>) and flat (<sky_condition>) structures.
         
         Args:
             clouds_data: Cloud data element
@@ -66,14 +67,24 @@ class FlightCategoryCalculator:
             return cloud_layers
         
         try:
-            # Handle XML element
+            # Handle XML element with findall method (nested structure)
             if hasattr(clouds_data, 'findall'):
+                # Try nested clouds structure first
                 for cloud_elem in clouds_data.findall('cloud'):
                     layer = {
                         'sky_cover': cloud_elem.get('sky_cover', 'SKC'),
                         'cloud_base_ft_agl': cloud_elem.get('cloud_base_ft_agl', '9999')
                     }
                     cloud_layers.append(layer)
+                
+                # If no nested clouds found, try flat sky_condition structure
+                if not cloud_layers:
+                    for sky_cond in clouds_data.findall('sky_condition'):
+                        layer = {
+                            'sky_cover': sky_cond.get('sky_cover', 'SKC'),
+                            'cloud_base_ft_agl': sky_cond.get('cloud_base_ft_agl', '9999')
+                        }
+                        cloud_layers.append(layer)
             
             # Handle dict data
             elif isinstance(clouds_data, dict):
@@ -84,6 +95,14 @@ class FlightCategoryCalculator:
                             'cloud_base_ft_agl': cloud.get('cloud_base_ft_agl', '9999')
                         }
                         cloud_layers.append(layer)
+                elif 'sky_condition' in clouds_data:
+                    # Handle flat structure in dict
+                    sky_cond = clouds_data['sky_condition']
+                    layer = {
+                        'sky_cover': sky_cond.get('sky_cover', 'SKC'),
+                        'cloud_base_ft_agl': sky_cond.get('cloud_base_ft_agl', '9999')
+                    }
+                    cloud_layers.append(layer)
             
             # Handle list data
             elif isinstance(clouds_data, list):
@@ -102,6 +121,7 @@ class FlightCategoryCalculator:
     def parse_visibility(self, visibility_data: Any) -> float:
         """
         Parse visibility from XML or dict data.
+        Enhanced to handle both nested (<visibility><statute_mi>) and flat (<visibility_statute_mi>) structures.
         
         Args:
             visibility_data: Visibility data element
@@ -112,22 +132,81 @@ class FlightCategoryCalculator:
         try:
             # Handle XML element
             if hasattr(visibility_data, 'get'):
+                # Try nested structure first
                 statute_mi = visibility_data.get('statute_mi', '999')
-                return float(statute_mi)
+                if statute_mi != '999':
+                    return self.normalize_visibility_value(statute_mi)
+                
+                # Try flat structure
+                if hasattr(visibility_data, 'text') and visibility_data.text:
+                    return self.normalize_visibility_value(visibility_data.text)
             
             # Handle dict data
             elif isinstance(visibility_data, dict):
                 statute_mi = visibility_data.get('statute_mi', '999')
-                return float(statute_mi)
+                if statute_mi != '999':
+                    return self.normalize_visibility_value(statute_mi)
             
             # Handle direct value
             elif isinstance(visibility_data, (int, float, str)):
-                return float(visibility_data)
+                return self.normalize_visibility_value(visibility_data)
         
         except (ValueError, TypeError) as e:
             logger.warning(f"Error parsing visibility: {e}")
         
         return 999.0  # Default to unlimited visibility
+    
+    def normalize_visibility_value(self, visibility_str):
+        """
+        Normalize visibility values from various formats to float miles.
+        
+        Handles special cases like:
+        - "10+" -> 10.0
+        - "P6SM" -> 6.0 (P = Plus, SM = Statute Miles)
+        - "1/2" -> 0.5
+        - "1 1/2" -> 1.5
+        - Regular numbers like "3.0" -> 3.0
+        
+        Args:
+            visibility_str: String visibility value
+            
+        Returns:
+            float: Normalized visibility in statute miles
+        """
+        if not visibility_str:
+            return 999.0
+        
+        visibility_str = str(visibility_str).strip()
+        
+        try:
+            # Handle "10+" format
+            if visibility_str.endswith('+'):
+                return float(visibility_str[:-1])
+            
+            # Handle "P6SM" format (P = Plus, SM = Statute Miles)
+            if visibility_str.startswith('P') and visibility_str.endswith('SM'):
+                return float(visibility_str[1:-2])
+            
+            # Handle fractional values like "1/2" or "1 1/2"
+            if '/' in visibility_str:
+                parts = visibility_str.split()
+                if len(parts) == 1:
+                    # Simple fraction like "1/2"
+                    numerator, denominator = parts[0].split('/')
+                    return float(numerator) / float(denominator)
+                elif len(parts) == 2:
+                    # Mixed number like "1 1/2"
+                    whole_part = float(parts[0])
+                    numerator, denominator = parts[1].split('/')
+                    fractional_part = float(numerator) / float(denominator)
+                    return whole_part + fractional_part
+            
+            # Handle regular numbers
+            return float(visibility_str)
+            
+        except (ValueError, ZeroDivisionError):
+            logger.warning(f"Could not parse visibility value: {visibility_str}")
+            return 999.0  # Default to unlimited visibility
     
     def get_lowest_ceiling(self, cloud_layers: List[Dict[str, Any]]) -> int:
         """
@@ -187,9 +266,10 @@ class FlightCategoryCalculator:
         # Default to VFR
         return "VFR"
     
-    def calculate_from_metar_xml(self, metar_element) -> str:
+    def calculate_from_metar_element(self, metar_element) -> str:
         """
         Calculate flight category directly from METAR XML element.
+        Enhanced to handle both nested and flat XML structures from 2025 API.
         
         Args:
             metar_element: METAR XML element
@@ -198,17 +278,45 @@ class FlightCategoryCalculator:
             str: Flight category
         """
         try:
-            # Get cloud data
-            clouds_elem = metar_element.find('clouds')
+            # Try to get API-provided flight category first
+            flight_category_elem = metar_element.find('flight_category')
+            if (flight_category_elem is not None and 
+                flight_category_elem.text is not None and 
+                flight_category_elem.text.strip() != '' and 
+                flight_category_elem.text.strip() != 'NONE'):
+                return flight_category_elem.text.strip()
             
-            # Get visibility data
+            # Fall back to manual calculation
+            # Try nested clouds structure first
+            clouds_elem = metar_element.find('clouds')
+            if clouds_elem is None:
+                # Try flat sky_condition structure
+                clouds_elem = metar_element
+            
+            # Try nested visibility structure first
             visibility_elem = metar_element.find('visibility')
+            if visibility_elem is None:
+                # Try flat visibility_statute_mi structure
+                visibility_elem = metar_element.find('visibility_statute_mi')
             
             return self.calculate_flight_category(clouds_elem, visibility_elem)
         
         except Exception as e:
-            logger.warning(f"Error calculating flight category from METAR XML: {e}")
+            logger.warning(f"Error calculating flight category from METAR element: {e}")
             return "VFR"
+    
+    def calculate_from_metar_xml(self, metar_element) -> str:
+        """
+        Calculate flight category directly from METAR XML element.
+        Legacy method - use calculate_from_metar_element for enhanced functionality.
+        
+        Args:
+            metar_element: METAR XML element
+            
+        Returns:
+            str: Flight category
+        """
+        return self.calculate_from_metar_element(metar_element)
     
     def calculate_from_taf_forecast(self, forecast_element) -> str:
         """

@@ -98,6 +98,58 @@ import config
 from log import logger
 from leds import LedStrip, Color
 
+def normalize_visibility_value(visibility_str):
+    """
+    Normalize visibility values from various formats to float miles.
+    
+    Handles special cases like:
+    - "10+" -> 10.0
+    - "P6SM" -> 6.0 (P = Plus, SM = Statute Miles)
+    - "1/2" -> 0.5
+    - "1 1/2" -> 1.5
+    - Regular numbers like "3.0" -> 3.0
+    
+    Args:
+        visibility_str: String visibility value
+        
+    Returns:
+        float: Normalized visibility in statute miles
+    """
+    if not visibility_str:
+        return 999.0
+    
+    visibility_str = str(visibility_str).strip()
+    
+    try:
+        # Handle "10+" format
+        if visibility_str.endswith('+'):
+            return float(visibility_str[:-1])
+        
+        # Handle "P6SM" format (P = Plus, SM = Statute Miles)
+        if visibility_str.startswith('P') and visibility_str.endswith('SM'):
+            return float(visibility_str[1:-2])
+        
+        # Handle fractional values like "1/2" or "1 1/2"
+        if '/' in visibility_str:
+            parts = visibility_str.split()
+            if len(parts) == 1:
+                # Simple fraction like "1/2"
+                numerator, denominator = parts[0].split('/')
+                return float(numerator) / float(denominator)
+            elif len(parts) == 2:
+                # Mixed number like "1 1/2"
+                whole_part = float(parts[0])
+                numerator, denominator = parts[1].split('/')
+                fractional_part = float(numerator) / float(denominator)
+                return whole_part + fractional_part
+        
+        # Handle regular numbers
+        return float(visibility_str)
+        
+    except (ValueError, ZeroDivisionError):
+        logger.warning(f"Could not parse visibility value: {visibility_str}")
+        return 999.0  # Default to unlimited visibility
+
 #****************************************************************************
 #* User defined items to be set below - Make changes to config.py, not here *
 #****************************************************************************
@@ -1242,97 +1294,164 @@ while (outerloop):
             # Routine contributed to project by Nick Cirincione. Thank you for your contribution.
             # Updated for 2025 API: Check if flight_category is provided, otherwise use fallback calculation
             
+            # Check configuration for API flight category preference
+            prefer_api_flight_category = getattr(config, 'prefer_api_flight_category', 1)
+            force_fallback_calculation = getattr(config, 'force_fallback_calculation', 0)
+            log_xml_parsing_details = getattr(config, 'log_xml_parsing_details', 1)
+            
             # Check if flight_category is provided in the 2025 API response
             flight_category_elem = metar.find('flight_category')
-            if flight_category_elem is not None and flight_category_elem.text is not None and flight_category_elem.text != 'NONE':
-                flightcategory = flight_category_elem.text
+            api_flight_category_available = (flight_category_elem is not None and 
+                                           flight_category_elem.text is not None and 
+                                           flight_category_elem.text.strip() != '' and 
+                                           flight_category_elem.text.strip() != 'NONE')
+            
+            if api_flight_category_available and prefer_api_flight_category and not force_fallback_calculation:
+                flightcategory = flight_category_elem.text.strip()
                 logger.info(f"{stationId}: Using API-provided flight category: {flightcategory}")
             else:
-                # Use fallback calculation if flight_category is not provided
-                flightcategory = "VFR" #intialize flight category
+                # Use fallback calculation if flight_category is not provided or forced
+                flightcategory = "VFR" #initialize flight category
                 sky_cvr = "SKC" # Initialize to Sky Clear
-                logger.info(f"{stationId}: Using fallback flight category calculation (2025 API)")
+                
+                if force_fallback_calculation:
+                    logger.info(f"{stationId}: Using forced fallback flight category calculation")
+                else:
+                    logger.info(f"{stationId}: Using fallback flight category calculation (API category not available)")
 
                 # There can be multiple layers of clouds in each METAR, but they are always listed lowest AGL first.
                 # Check the lowest (first) layer and see if it's overcast, broken, or obscured. If it is, then compare to cloud base height to set flight category.
                 # This algorithm basically sets the flight category based on the lowest OVC, BKN or OVX layer.
-                # Updated for 2025 API: Handle new cloud array structure
+                # Updated for 2025 API: Handle actual flat XML structure with sky_condition elements
+                sky_condition = None
                 try:
-                    # Try new 2025 API cloud structure first
-                    clouds_elem = metar.find('clouds')
-                    if clouds_elem is not None:
-                        logger.info(f"{stationId}: Using 2025 API cloud structure")
-                        for cloud_layer in clouds_elem.findall('cloud'):
-                            sky_cvr = cloud_layer.get('sky_cover', 'SKC')
-                            logger.info(f"{stationId}: Sky Cover = {sky_cvr}")
+                    # Try 2025 API flat structure first (sky_condition elements with attributes)
+                    sky_conditions = metar.findall('sky_condition')
+                    if sky_conditions:
+                        if log_xml_parsing_details:
+                            logger.info(f"{stationId}: Using 2025 API flat sky_condition structure")
+                        for sky_cond in sky_conditions:
+                            sky_cvr = sky_cond.get('sky_cover', 'SKC')
+                            if log_xml_parsing_details:
+                                logger.debug(f"{stationId}: Sky Cover = {sky_cvr}")
                             if sky_cvr in ("OVC","BKN","OVX"):
-                                sky_condition = cloud_layer
+                                sky_condition = sky_cond
                                 break
                     else:
-                        # Fallback to old structure
-                        if metar.find('forecast') is None or metar.find('forecast') == 'NONE':
-                            logger.info('FAA xml data is NOT providing the forecast field for this airport')
-                            for sky_condition in metar.findall('./sky_condition'):   #for each sky_condition from the XML
-                                sky_cvr = sky_condition.attrib['sky_cover']     #get the sky cover (BKN, OVC, SCT, etc)
-                                logger.debug('Sky Cover = ' + sky_cvr)
-                                if sky_cvr in ("OVC","BKN","OVX"): # Break out of for loop once we find one of these conditions
+                        # Try nested clouds structure
+                        clouds_elem = metar.find('clouds')
+                        if clouds_elem is not None:
+                            if log_xml_parsing_details:
+                                logger.info(f"{stationId}: Using nested clouds structure")
+                            for cloud_layer in clouds_elem.findall('cloud'):
+                                sky_cvr = cloud_layer.get('sky_cover', 'SKC')
+                                if log_xml_parsing_details:
+                                    logger.debug(f"{stationId}: Sky Cover = {sky_cvr}")
+                                if sky_cvr in ("OVC","BKN","OVX"):
+                                    sky_condition = cloud_layer
                                     break
                         else:
-                            logger.info('FAA xml data IS providing the forecast field for this airport')
-                            for sky_condition in metar.findall('./forecast/sky_condition'):   #for each sky_condition from the XML
-                                sky_cvr = sky_condition.attrib['sky_cover']     #get the sky cover (BKN, OVC, SCT, etc)
-                                logger.debug('Sky Cover = ' + sky_cvr)
-                                logger.debug(metar.find('./forecast/fcst_time_from').text)
-                                if sky_cvr in ("OVC","BKN","OVX"): # Break out of for loop once we find one of these conditions
-                                    break
+                            # Fallback to old forecast structure
+                            if metar.find('forecast') is None or metar.find('forecast') == 'NONE':
+                                if log_xml_parsing_details:
+                                    logger.info('FAA xml data is NOT providing the forecast field for this airport')
+                                for sky_cond in metar.findall('./sky_condition'):   #for each sky_condition from the XML
+                                    sky_cvr = sky_cond.attrib['sky_cover']     #get the sky cover (BKN, OVC, SCT, etc)
+                                    if log_xml_parsing_details:
+                                        logger.debug('Sky Cover = ' + sky_cvr)
+                                    if sky_cvr in ("OVC","BKN","OVX"): # Break out of for loop once we find one of these conditions
+                                        sky_condition = sky_cond
+                                        break
+                            else:
+                                if log_xml_parsing_details:
+                                    logger.info('FAA xml data IS providing the forecast field for this airport')
+                                for sky_cond in metar.findall('./forecast/sky_condition'):   #for each sky_condition from the XML
+                                    sky_cvr = sky_cond.attrib['sky_cover']     #get the sky cover (BKN, OVC, SCT, etc)
+                                    if log_xml_parsing_details:
+                                        logger.debug('Sky Cover = ' + sky_cvr)
+                                        logger.debug(metar.find('./forecast/fcst_time_from').text)
+                                    if sky_cvr in ("OVC","BKN","OVX"): # Break out of for loop once we find one of these conditions
+                                        sky_condition = sky_cond
+                                        break
                 except Exception as e:
                     logger.warning(f"Error parsing cloud data for {stationId}: {e}")
                     sky_cvr = "SKC"
 
-                if sky_cvr in ("OVC","BKN","OVX"): #If the layer is OVC, BKN or OVX, set Flight category based on height AGL
+                if sky_cvr in ("OVC","BKN","OVX") and sky_condition is not None: #If the layer is OVC, BKN or OVX, set Flight category based on height AGL
                     try:
-                        # Try new 2025 API structure first
-                        cld_base_ft_agl = sky_condition.get('cloud_base_ft_agl')
+                        # Try to get cloud base from sky_condition element
+                        cld_base_ft_agl = None
+                        
+                        # Try different attribute access methods
+                        if hasattr(sky_condition, 'get'):
+                            cld_base_ft_agl = sky_condition.get('cloud_base_ft_agl')
+                        elif hasattr(sky_condition, 'attrib'):
+                            cld_base_ft_agl = sky_condition.attrib.get('cloud_base_ft_agl')
+                        
                         if cld_base_ft_agl is None:
-                            # Fallback to old structure
-                            cld_base_ft_agl = sky_condition.attrib['cloud_base_ft_agl']
-                    except:
-                        try:
-                            cld_base_ft_agl = forecast.find('vert_vis_ft').text #get cloud base AGL from XML
-                        except:
+                            # Try forecast structure as last resort
+                            try:
+                                forecast_elem = metar.find('forecast')
+                                if forecast_elem is not None:
+                                    vert_vis_elem = forecast_elem.find('vert_vis_ft')
+                                    if vert_vis_elem is not None:
+                                        cld_base_ft_agl = vert_vis_elem.text
+                            except:
+                                pass
+                        
+                        if cld_base_ft_agl is None:
                             logger.warning(f"Could not determine cloud base for {stationId}")
                             cld_base_ft_agl = "9999"  # Default to high ceiling
+                        else:
+                            if log_xml_parsing_details:
+                                logger.debug(f"{stationId}: Cloud Base = {cld_base_ft_agl}")
+                            
+                    except Exception as e:
+                        logger.warning(f"Error getting cloud base for {stationId}: {e}")
+                        cld_base_ft_agl = "9999"  # Default to high ceiling
 
-                    logger.debug('Cloud Base = ' + str(cld_base_ft_agl))
-                    cld_base_ft_agl = int(cld_base_ft_agl)
+                    try:
+                        cld_base_ft_agl = int(cld_base_ft_agl)
+                    except (ValueError, TypeError):
+                        logger.warning(f"Invalid cloud base value for {stationId}: {cld_base_ft_agl}")
+                        cld_base_ft_agl = 9999
 
                     if cld_base_ft_agl < 500:
                         flightcategory = "LIFR"
-#                        break
                     elif 500 <= cld_base_ft_agl < 1000:
                         flightcategory = "IFR"
-#                        break
                     elif 1000 <= cld_base_ft_agl <= 3000:
                         flightcategory = "MVFR"
-#                        break
                     elif cld_base_ft_agl > 3000:
                         flightcategory = "VFR"
-#                        break
 
-                #visibilty can also set flight category. If the clouds haven't set the fltcat to LIFR. See if visibility will
+                # Visibility can also set flight category. If the clouds haven't set the fltcat to LIFR, check visibility
                 if flightcategory != "LIFR": #if it's LIFR due to cloud layer, no reason to check any other things that can set flight category.
                     visibility_statute_mi = None
                     # Try multiple visibility paths for 2025 API compatibility
                     try:
-                        # Try new 2025 API structure first
-                        vis_elem = metar.find('visibility')
+                        # Try 2025 API flat structure first (visibility_statute_mi as direct child)
+                        vis_elem = metar.find('visibility_statute_mi')
                         if vis_elem is not None:
-                            visibility_statute_mi = float(vis_elem.get('statute_mi', '999'))
+                            visibility_statute_mi = self.normalize_visibility_value(vis_elem.text)
+                            if log_xml_parsing_details:
+                                logger.debug(f"{stationId}: Using flat visibility_statute_mi: {visibility_statute_mi}")
                         else:
-                            # Fallback to old structure
-                            vis_elem = metar.find('./forecast/visibility_statute_mi')
+                            # Try nested visibility structure
+                            vis_elem = metar.find('visibility')
                             if vis_elem is not None:
-                                visibility_statute_mi = float(vis_elem.text.strip('+'))
+                                statute_mi_val = vis_elem.get('statute_mi')
+                                if statute_mi_val:
+                                    visibility_statute_mi = self.normalize_visibility_value(statute_mi_val)
+                                    if log_xml_parsing_details:
+                                        logger.debug(f"{stationId}: Using nested visibility.statute_mi: {visibility_statute_mi}")
+                            else:
+                                # Fallback to old forecast structure
+                                vis_elem = metar.find('./forecast/visibility_statute_mi')
+                                if vis_elem is not None:
+                                    visibility_statute_mi = self.normalize_visibility_value(vis_elem.text)
+                                    if log_xml_parsing_details:
+                                        logger.debug(f"{stationId}: Using forecast visibility_statute_mi: {visibility_statute_mi}")
                     except Exception as e:
                         logger.warning(f"Could not parse visibility for {stationId}: {e}")
                         visibility_statute_mi = 999  # Default to unlimited visibility
