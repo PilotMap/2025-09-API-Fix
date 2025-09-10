@@ -1783,63 +1783,63 @@ while (outerloop):
 
                     if i == leg_pin_lghtn and legend_lghtn:
                         if (cycle_num == 2 or cycle_num == 4): #Check for Thunderstorms
-                            xcolor = color_lghtn
+                            xcolor = Color(color_lghtn[0], color_lghtn[1], color_lghtn[2])
 
                         elif (cycle_num == 0 or cycle_num == 1 or cycle_num == 3 or cycle_num == 5):
-                            xcolor=color_mvfr
+                            xcolor = Color(color_mvfr[0], color_mvfr[1], color_mvfr[2])
 
                     if i == leg_pin_snow and legend_snow:
                         if (cycle_num == 3 or cycle_num == 5): #Check for Snow
-                            xcolor = color_snow1
+                            xcolor = Color(color_snow1[0], color_snow1[1], color_snow1[2])
 
                         if (cycle_num == 4):
-                            xcolor = color_snow2
+                            xcolor = Color(color_snow2[0], color_snow2[1], color_snow2[2])
 
                         elif (cycle_num == 0 or cycle_num == 1 or cycle_num == 2):
-                            xcolor=color_lifr
+                            xcolor = Color(color_lifr[0], color_lifr[1], color_lifr[2])
 
                     if i == leg_pin_rain and legend_rain:
                         if (cycle_num == 3 or cycle_num == 5): #Check for Rain
-                            xcolor = color_rain1
+                            xcolor = Color(color_rain1[0], color_rain1[1], color_rain1[2])
 
                         if (cycle_num == 4):
-                            xcolor = color_rain2
+                            xcolor = Color(color_rain2[0], color_rain2[1], color_rain2[2])
 
                         elif (cycle_num == 0 or cycle_num == 1 or cycle_num == 2):
-                            xcolor=color_vfr
+                            xcolor = Color(color_vfr[0], color_vfr[1], color_vfr[2])
 
                     if i == leg_pin_frrain and legend_frrain:
                         if (cycle_num == 3 or cycle_num == 5): #Check for Freezing Rain
-                            xcolor = color_frrain1
+                            xcolor = Color(color_frrain1[0], color_frrain1[1], color_frrain1[2])
 
                         if (cycle_num == 4):
-                            xcolor = color_frrain2
+                            xcolor = Color(color_frrain2[0], color_frrain2[1], color_frrain2[2])
 
                         elif (cycle_num == 0 or cycle_num == 1 or cycle_num == 2):
-                            xcolor = color_mvfr
+                            xcolor = Color(color_mvfr[0], color_mvfr[1], color_mvfr[2])
 
                     if i == leg_pin_dustsandash and legend_dustsandash:
                         if (cycle_num == 3 or cycle_num == 5): #Check for Dust, Sand or Ash
-                            xcolor = color_dustsandash1
+                            xcolor = Color(color_dustsandash1[0], color_dustsandash1[1], color_dustsandash1[2])
 
                         if (cycle_num == 4):
-                            xcolor = color_dustsandash2
+                            xcolor = Color(color_dustsandash2[0], color_dustsandash2[1], color_dustsandash2[2])
 
                         elif (cycle_num == 0 or cycle_num == 1 or cycle_num == 2):
-                            xcolor=color_vfr
+                            xcolor = Color(color_vfr[0], color_vfr[1], color_vfr[2])
 
                     if i == leg_pin_fog and legend_fog:
                         if (cycle_num == 3 or cycle_num == 5): #Check for Fog
-                            xcolor = color_fog1
+                            xcolor = Color(color_fog1[0], color_fog1[1], color_fog1[2])
 
                         if (cycle_num == 4):
-                            xcolor = color_fog2
+                            xcolor = Color(color_fog2[0], color_fog2[1], color_fog2[2])
 
                         elif (cycle_num == 0 or cycle_num == 1 or cycle_num == 2):
-                            xcolor=color_ifr
+                            xcolor = Color(color_ifr[0], color_ifr[1], color_ifr[2])
 
                 #Check to see if airport code is a NULL and set to black.
-                if airportcode == "NULL" or airportcode == "LGND":
+                if airportcode == "NULL" or (airportcode == "LGND" and (not legend or i not in legend_pins)):
                     xcolor = Color(color_black[0], color_black[1], color_black[2])
 
                 # Debug logging for first few LEDs to see final colors (commented out to reduce CPU usage)
