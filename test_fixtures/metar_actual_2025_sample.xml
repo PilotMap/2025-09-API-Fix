@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.0" xsi:noNamespaceSchemaLocation="https://aviationweather.gov/adds/schema/metar1_0.xsd">
+  <request_index>12345678</request_index>
+  <data_source name="metars"/>
+  <request type="retrieve"/>
+  <errors/>
+  <warnings/>
+  <time_taken_ms>45</time_taken_ms>
+  <data num_results="5">
+    <METAR>
+      <raw_text>KSRQ 061253Z 00000KT 10SM FEW250 25/18 A3000 RMK AO2 SLP169 T02500183</raw_text>
+      <station_id>KSRQ</station_id>
+      <observation_time>2025-01-06T12:53:00Z</observation_time>
+      <latitude>27.4</latitude>
+      <longitude>-82.55</longitude>
+      <temp_c>25</temp_c>
+      <dewpoint_c>18</dewpoint_c>
+      <wind_dir_degrees>0</wind_dir_degrees>
+      <wind_speed_kt>0</wind_speed_kt>
+      <wind_gust_kt>0</wind_gust_kt>
+      <visibility_statute_mi>10</visibility_statute_mi>
+      <altim_in_hg>30.0</altim_in_hg>
+      <sea_level_pressure_mb>1016.9</sea_level_pressure_mb>
+      <quality_control_flags>
+        <auto>TRUE</auto>
+        <auto_station>TRUE</auto_station>
+      </quality_control_flags>
+      <sky_condition sky_cover="FEW" cloud_base_ft_agl="25000"/>
+      <flight_category>VFR</flight_category>
+      <three_hr_pressure_tendency_mb>0.0</three_hr_pressure_tendency_mb>
+      <maxT_c>25.0</maxT_c>
+      <minT_c>18.3</minT_c>
+      <maxT24hr_c>25.0</maxT24hr_c>
+      <minT24hr_c>18.3</minT24hr_c>
+      <precip_in>0.00</precip_in>
+      <pcp3hr_in>0.00</pcp3hr_in>
+      <pcp6hr_in>0.00</pcp6hr_in>
+      <pcp24hr_in>0.00</pcp24hr_in>
+      <snow_in>0.0</snow_in>
+      <vert_vis_ft>25000</vert_vis_ft>
+      <metar_type>METAR</metar_type>
+      <elevation_m>9</elevation_m>
+    </METAR>
+    <METAR>
+      <raw_text>KORD 061253Z 28015G25KT 2SM R10L/4000VP6000FT -RA BR BKN008 OVC015 02/M01 A2992 RMK AO2 PK WND 28025/1245 P0000 T00171011</raw_text>
+      <station_id>KORD</station_id>
+      <observation_time>2025-01-06T12:53:00Z</observation_time>
+      <latitude>41.98</latitude>
+      <longitude>-87.9</longitude>
+      <temp_c>2</temp_c>
+      <dewpoint_c>-1</dewpoint_c>
+      <wind_dir_degrees>280</wind_dir_degrees>
+      <wind_speed_kt>15</wind_speed_kt>
+      <wind_gust_kt>25</wind_gust_kt>
+      <visibility_statute_mi>2</visibility_statute_mi>
+      <altim_in_hg>29.92</altim_in_hg>
+      <sea_level_pressure_mb>1013.2</sea_level_pressure_mb>
+      <quality_control_flags>
+        <auto>TRUE</auto>
+        <auto_station>TRUE</auto_station>
+      </quality_control_flags>
+      <sky_condition sky_cover="BKN" cloud_base_ft_agl="800"/>
+      <sky_condition sky_cover="OVC" cloud_base_ft_agl="1500"/>
+      <flight_category>IFR</flight_category>
+      <three_hr_pressure_tendency_mb>-0.1</three_hr_pressure_tendency_mb>
+      <maxT_c>2.0</maxT_c>
+      <minT_c>-1.1</minT_c>
+      <maxT24hr_c>2.0</maxT24hr_c>
+      <minT24hr_c>-1.1</minT24hr_c>
+      <precip_in>0.00</precip_in>
+      <pcp3hr_in>0.00</pcp3hr_in>
+      <pcp6hr_in>0.00</pcp6hr_in>
+      <pcp24hr_in>0.00</pcp24hr_in>
+      <snow_in>0.0</snow_in>
+      <vert_vis_ft>800</vert_vis_ft>
+      <metar_type>METAR</metar_type>
+      <elevation_m>201</elevation_m>
+    </METAR>
+    <METAR>
+      <raw_text>KLAX 061253Z 25008KT 1/2SM R06L/1200V1600FT FG VV002 15/14 A2998 RMK AO2 SLP142 T01500139</raw_text>
+      <station_id>KLAX</station_id>
+      <observation_time>2025-01-06T12:53:00Z</observation_time>
+      <latitude>33.94</latitude>
+      <longitude>-118.41</longitude>
+      <temp_c>15</temp_c>
+      <dewpoint_c>14</dewpoint_c>
+      <wind_dir_degrees>250</wind_dir_degrees>
+      <wind_speed_kt>8</wind_speed_kt>
+      <wind_gust_kt>0</wind_gust_kt>
+      <visibility_statute_mi>0.5</visibility_statute_mi>
+      <altim_in_hg>29.98</altim_in_hg>
+      <sea_level_pressure_mb>1014.2</sea_level_pressure_mb>
+      <quality_control_flags>
+        <auto>TRUE</auto>
+        <auto_station>TRUE</auto_station>
+      </quality_control_flags>
+      <sky_condition sky_cover="VV" cloud_base_ft_agl="200"/>
+      <flight_category>LIFR</flight_category>
+      <three_hr_pressure_tendency_mb>0.0</three_hr_pressure_tendency_mb>
+      <maxT_c>15.0</maxT_c>
+      <minT_c>13.9</minT_c>
+      <maxT24hr_c>15.0</maxT24hr_c>
+      <minT24hr_c>13.9</minT24hr_c>
+      <precip_in>0.00</precip_in>
+      <pcp3hr_in>0.00</pcp3hr_in>
+      <pcp6hr_in>0.00</pcp6hr_in>
+      <pcp24hr_in>0.00</pcp24hr_in>
+      <snow_in>0.0</snow_in>
+      <vert_vis_ft>200</vert_vis_ft>
+      <metar_type>METAR</metar_type>
+      <elevation_m>38</elevation_m>
+    </METAR>
+    <METAR>
+      <raw_text>KDFW 061253Z 18012KT 4SM BR SCT015 BKN025 OVC035 12/10 A3005 RMK AO2 SLP175 T01220100</raw_text>
+      <station_id>KDFW</station_id>
+      <observation_time>2025-01-06T12:53:00Z</observation_time>
+      <latitude>32.9</latitude>
+      <longitude>-97.04</longitude>
+      <temp_c>12</temp_c>
+      <dewpoint_c>10</dewpoint_c>
+      <wind_dir_degrees>180</wind_dir_degrees>
+      <wind_speed_kt>12</wind_speed_kt>
+      <wind_gust_kt>0</wind_gust_kt>
+      <visibility_statute_mi>4</visibility_statute_mi>
+      <altim_in_hg>30.05</altim_in_hg>
+      <sea_level_pressure_mb>1017.5</sea_level_pressure_mb>
+      <quality_control_flags>
+        <auto>TRUE</auto>
+        <auto_station>TRUE</auto_station>
+      </quality_control_flags>
+      <sky_condition sky_cover="SCT" cloud_base_ft_agl="1500"/>
+      <sky_condition sky_cover="BKN" cloud_base_ft_agl="2500"/>
+      <sky_condition sky_cover="OVC" cloud_base_ft_agl="3500"/>
+      <flight_category>MVFR</flight_category>
+      <three_hr_pressure_tendency_mb>0.0</three_hr_pressure_tendency_mb>
+      <maxT_c>12.0</maxT_c>
+      <minT_c>10.0</minT_c>
+      <maxT24hr_c>12.0</maxT24hr_c>
+      <minT24hr_c>10.0</minT24hr_c>
+      <precip_in>0.00</precip_in>
+      <pcp3hr_in>0.00</pcp3hr_in>
+      <pcp6hr_in>0.00</pcp6hr_in>
+      <pcp24hr_in>0.00</pcp24hr_in>
+      <snow_in>0.0</snow_in>
+      <vert_vis_ft>1500</vert_vis_ft>
+      <metar_type>METAR</metar_type>
+      <elevation_m>151</elevation_m>
+    </METAR>
+  </data>
+</response>
